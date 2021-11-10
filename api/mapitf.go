@@ -1,8 +1,8 @@
 package api
 
 // ForFunc 迭代函数
-// i表示索引; k v表示迭代值,如果是list则k为nil;key val返回值,如果希望返回list则key为nil
-// key val同时为nil则不将结果加入结果集
+// i表示索引; k v表示迭代值, 如果循环的是list则k为nil;
+// key val为返回值,若希望结果集为List则将key返回为nil,若希望为map则key val都不为空;若key val同时为nil则不将结果加入结果集
 type ForFunc func(i int, k, v interface{}) (key, val interface{})
 
 type MapInterface interface {
