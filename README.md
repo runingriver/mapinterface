@@ -94,6 +94,21 @@ if err != nil {
 fmt.Println("age:", age) // string ==> Jack
 ```
 
+3. ForEach
+```go
+nameList, err := mapitf.From(mapList[2]).GetAny("users").ForEach(func(i int, k, v interface{}) (key, val interface{}) {
+    idNum, cvtErr := mapitf.From(v).Get("id").ToInt64() 
+    if cvtErr != nil || idNum <= 1 {
+        return nil, nil // 不满足条件,则不加入结果集
+    }
+    firstName, cvtErr := mapitf.From(v).GetAny("name", "first").ToStr()
+    if cvtErr != nil {
+        return nil, nil // 不满足条件,则不加入结果集
+    }
+    return nil, firstName // 结果集为List
+}).ToListStrF()
+```
+
 # 规划
 1. 支持Foreach能力(p0), 预案如下:  -- **已支持**
 ```go
@@ -101,12 +116,12 @@ fmt.Println("age:", age) // string ==> Jack
 
 mapitf.From(dsl).Get("predict").Get("risk").ForEach(operationFunc).ToListStr()
 
-operationFunc = func (i int, k, v interface) (key, val interface, skip bool) {
-	if mapitf.From(v).Get('risk_level').ToInt() > 20 {
-		return nil, nil, true
-    }   
+operationFunc = func (i int, k, v interface) (key, val interface) {
+    if mapitf.From(v).Get('risk_level').ToInt() > 20 {
+        return nil, nil
+    }
     result := somePkg.getPredict(v)
-	return nil, result, false
+    return nil, result
 }
 ```
 
@@ -115,12 +130,12 @@ operationFunc = func (i int, k, v interface) (key, val interface, skip bool) {
 
 mapitf.From(dsl).Get("predict").Get("risk").ForEach(operationFunc).ToMap()
 
-operationFunc = func (i int, k, v interface) (key, val interface, skip bool) {
-	if mapitf.From(v).Get('risk_level').ToInt() > 20 {
-		return nil, nil, true
-    }  
+operationFunc = func (i int, k, v interface) (key, val interface) {
+    if mapitf.From(v).Get('risk_level').ToInt() > 20 {
+        return nil, nil
+    }
     result := somePkg.getPredict(v)
-	return k, result, false
+    return k, result
 }
 ```
 **进度:** v1.0.14版已支持
