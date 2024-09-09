@@ -5,66 +5,13 @@ import (
 	"fmt"
 )
 
-type MapItfErrorCode int
-
-const (
-	UnknownErr       MapItfErrorCode = -1
-	InitParseFailed  MapItfErrorCode = 1001
-	InitParamTypeErr MapItfErrorCode = 2001
-	ExceptObject     MapItfErrorCode = 2002
-
-	KeyTypeErr              MapItfErrorCode = 3001
-	ValueTypeErr            MapItfErrorCode = 3002
-	ValueConvertFailed      MapItfErrorCode = 3003
-	BaseTypeConvertFailed   MapItfErrorCode = 3004
-	KeyNotFound             MapItfErrorCode = 3005
-	GetFuncTypeInconsistent MapItfErrorCode = 3006
-	IllegalMapObject        MapItfErrorCode = 3007
-
-	ListIndexIllegal MapItfErrorCode = 4001
-
-	UnSupportInterfaceFunc MapItfErrorCode = 5001
-	CurrentCannotUseIndex  MapItfErrorCode = 5002
-	TypeMismatchErr        MapItfErrorCode = 5003
-	FuncUsedErr            MapItfErrorCode = 5004
-	UnrecoverableErr       MapItfErrorCode = 5005
-)
-
-func (err MapItfErrorCode) String() string {
-	switch err {
-	case InitParseFailed:
-		return "Init_Parse_Failed"
-	case InitParamTypeErr:
-		return "InitParamTypeErr"
-	case ExceptObject:
-		return "ExceptObject"
-	case KeyTypeErr:
-		return "KeyTypeErr"
-	case ValueTypeErr:
-		return "ValueTypeErr"
-	case ValueConvertFailed:
-		return "ValueConvertFailed"
-	case BaseTypeConvertFailed:
-		return "BaseTypeConvertFailed"
-	case KeyNotFound:
-		return "KeyNotFound"
-	case GetFuncTypeInconsistent:
-		return "GetFuncTypeInconsistent"
-	case ListIndexIllegal:
-		return "ListIndexIllegal"
-	case UnSupportInterfaceFunc:
-		return "UnSupportInterfaceFunc"
-	case CurrentCannotUseIndex:
-		return "CurrentCannotUseIndex"
-	case TypeMismatchErr:
-		return "TypeMismatchErr"
-	case FuncUsedErr:
-		return "FuncUsedErr"
-	case UnrecoverableErr:
-		return "UnrecoverableErr"
-	default:
-		return "UnDefine_Err"
-	}
+type MapItfErr interface {
+	error
+	Is(error) bool
+	Wrap(error) MapItfErr
+	Code() MapItfErrorCode
+	String() string
+	IsErrEqual(err error) bool
 }
 
 type MapItfError struct {
@@ -116,6 +63,10 @@ func NewConvFailed(locate string) *MapItfError {
 	return NewMapItfErr(locate, ValueConvertFailed, "", nil)
 }
 
+func NewConvFailedX(locate string, msg string, err error) *MapItfError {
+	return NewMapItfErr(locate, ValueConvertFailed, msg, err)
+}
+
 func NewUnSupportInterfaceFunc(locate string) *MapItfError {
 	return NewMapItfErr(locate, UnSupportInterfaceFunc, "", nil)
 }
@@ -144,18 +95,43 @@ func NewBaseTypeConvErr(locate string, msg string, err error) *MapItfError {
 	return NewMapItfErr(locate, BaseTypeConvertFailed, msg, err)
 }
 
-func (mie MapItfError) String() string {
-	if mie.Err == nil && mie.ErrMsg == "" {
-		return fmt.Sprintf("%s{Location:%s,ErrCode:%d}", mie.ErrCode, mie.Location, mie.ErrCode)
-	}
-	if mie.ErrMsg != "" {
-		return fmt.Sprintf("MapItfError{Location:%s,ErrCode:%d,ErrMsg:%s}", mie.Location, mie.ErrCode, mie.ErrMsg)
-	}
-	return fmt.Sprintf("MapItfError{Location:%s,ErrCode:%d,Err:%v,ErrMsg:%s}", mie.Location, mie.ErrCode, mie.Err, mie.ErrMsg)
+func NewUnSupportSetValErr(locate string, msg string, err error) *MapItfError {
+	return NewMapItfErr(locate, UnSupportSetValTypeErr, msg, err)
 }
 
-func (mie MapItfError) Error() string {
+func NewSetValueErr(locate string, msg string, err error) *MapItfError {
+	return NewMapItfErr(locate, SetValueErr, msg, err)
+}
+
+func (mie *MapItfError) String() string {
+	if mie.Err == nil && mie.ErrMsg == "" {
+		return fmt.Sprintf("MapItfError{Location:%s,ErrCode:%d(%s)}", mie.Location, mie.ErrCode, mie.ErrCode.String())
+	}
+	if mie.ErrMsg != "" {
+		return fmt.Sprintf("MapItfError{Location:%s,ErrCode:%d(%s),ErrMsg:%s}", mie.Location, mie.ErrCode, mie.ErrCode.String(), mie.ErrMsg)
+	}
+	return fmt.Sprintf("MapItfError{Location:%s,ErrCode:%d(%s),Err:%s,ErrMsg:%s}", mie.Location, mie.ErrCode, mie.ErrCode.String(), mie.Err.Error(), mie.ErrMsg)
+}
+
+func (mie *MapItfError) Error() string {
 	return mie.String()
+}
+
+func (mie *MapItfError) Wrap(err error) MapItfErr {
+	mie.Err = err
+	return mie
+}
+
+func (mie *MapItfError) Is(err error) bool {
+	return IsItfErr(err)
+}
+
+func (mie *MapItfError) Code() MapItfErrorCode {
+	return mie.ErrCode
+}
+
+func (mie *MapItfError) IsErrEqual(err2 error) bool {
+	return IsErrEqual(mie, err2)
 }
 
 func IsErrEqual(err1, err2 error) bool {
@@ -177,17 +153,15 @@ func IsErrEqual(err1, err2 error) bool {
 }
 
 func IsItfErr(err error) bool {
-	if _, ok := err.(MapItfError); ok {
+	if _, ok := err.(*MapItfError); ok {
 		return true
 	}
-
 	return false
 }
 
 func GetErrCode(err error) MapItfErrorCode {
-	if err1, ok := err.(MapItfError); ok {
+	if err1, ok := err.(*MapItfError); ok {
 		return err1.ErrCode
 	}
-
 	return UnknownErr
 }

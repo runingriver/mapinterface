@@ -57,6 +57,12 @@ const (
 	MapStructItf  ValType = 70
 	MapFuncItf    ValType = 71
 
+	MapStrToStr         ValType = 72
+	MapIntToInt         ValType = 73
+	MapInt64ToInt64     ValType = 74
+	MapFloat32ToFloat32 ValType = 75
+	MapFloat64ToFloat64 ValType = 76
+
 	ListItf     ValType = 81
 	ListStr     ValType = 82
 	ListInt     ValType = 83
@@ -65,7 +71,7 @@ const (
 	ListUint    ValType = 86
 	ListUint32  ValType = 87
 	ListUint64  ValType = 88
-	ListFloat   ValType = 89
+	ListFloat32 ValType = 89
 	ListFloat64 ValType = 90
 	ListBool    ValType = 91
 )

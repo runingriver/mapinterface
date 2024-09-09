@@ -1,8 +1,8 @@
 package mapitf
 
 import (
+	"context"
 	"fmt"
-
 	"github.com/runingriver/mapinterface/api"
 	"github.com/runingriver/mapinterface/itferr"
 	"github.com/runingriver/mapinterface/pkg"
@@ -18,6 +18,8 @@ const (
 
 type ForeachItf interface {
 	api.MapInterface
+
+	WithIterChain(iterChain *IterChain) ForeachItf
 }
 
 type ForeachItfImpl struct {
@@ -28,26 +30,38 @@ type ForeachItfImpl struct {
 	MapItf   map[interface{}]interface{}
 }
 
-func NewForeachItfImpl(list []interface{}, m map[interface{}]interface{}) ForeachItf {
+// NewForeachItfImpl 提供对map,list进行for循环的支持,返回的对象可以根据返回值定义为list或map.
+func NewForeachItfImpl(ctx context.Context, listItf []interface{}, mapItf map[interface{}]interface{}) ForeachItf {
 	fi := &ForeachItfImpl{
 		BaseItfImpl: BaseItfImpl{
-			IterVal:   nil,
-			IterLevel: 0,
-			ItfErr:    nil,
+			Ctx:     ctx,
+			Class:   "ForeachItf",
+			IterVal: nil,
+			ItfErr:  nil,
 		},
-		ListItf: list,
-		MapItf:  m,
+		ListItf: listItf,
+		MapItf:  mapItf,
 	}
-	if len(list) != 0 {
-		fi.BaseItfImpl.IterVal = list
+	if len(listItf) != 0 {
+		fi.BaseItfImpl.IterVal = listItf
+		fi.BaseItfImpl.IterChain = NewLinkedList(listItf)
 		fi.DataType = ListDataType
-	} else if len(m) != 0 {
-		fi.BaseItfImpl.IterVal = m
+	} else if len(mapItf) != 0 {
+		fi.BaseItfImpl.IterVal = mapItf
+		fi.BaseItfImpl.IterChain = NewLinkedList(mapItf)
 		fi.DataType = MapDataType
 	} else {
 		fi.DataType = EmptyDataType
 	}
 	return fi
+}
+
+func (m *ForeachItfImpl) WithIterChain(iterChain *IterChain) ForeachItf {
+	if iterChain == nil {
+		return m
+	}
+	m.IterChain = iterChain
+	return m
 }
 
 func (m *ForeachItfImpl) Index(index int) api.MapInterface {
@@ -56,8 +70,9 @@ func (m *ForeachItfImpl) Index(index int) api.MapInterface {
 		return m
 	}
 
-	if len(m.ListItf) < index {
-		return From(m.ListItf[index])
+	if len(m.ListItf) > index {
+		m.IterChain.PushBackByIdx(index, m.ListItf)
+		return FrWithChain(m.Ctx, m.ListItf[index], m.IterChain)
 	}
 
 	m.ItfErr = itferr.NewListIndexIllegal(fmt.Sprintf("ForeachItfImpl#Index(%d)#(%d)", index, len(m.ListItf)))
@@ -69,7 +84,7 @@ func (m *ForeachItfImpl) Get(key interface{}) api.MapInterface {
 		m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("ForeachItfImpl#Get(%v)", key), "un-supported func")
 		return m
 	}
-	return From(m.MapItf).GetAny(key)
+	return FrWithChain(m.Ctx, m.MapItf, m.IterChain).Get(key)
 }
 
 func (m *ForeachItfImpl) GetAny(keys ...interface{}) api.MapInterface {
@@ -77,7 +92,7 @@ func (m *ForeachItfImpl) GetAny(keys ...interface{}) api.MapInterface {
 		m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("ForeachItfImpl#GetAny(%v)", keys), "un-supported func")
 		return m
 	}
-	return From(m.MapItf).GetAny(keys...)
+	return FrWithChain(m.Ctx, m.MapItf, m.IterChain).GetAny(keys...)
 }
 
 func (m *ForeachItfImpl) ToMap() (map[string]interface{}, error) {
@@ -230,6 +245,9 @@ func (m *ForeachItfImpl) ToMapFloat32ToFloat32() (map[float32]float32, error) {
 func (m *ForeachItfImpl) ToList() ([]interface{}, error) {
 	return m.ListItf, nil
 }
+func (m *ForeachItfImpl) ToListMap() ([]map[string]interface{}, error) {
+	return m.BaseItfImpl.ToListMap()
+}
 func (m *ForeachItfImpl) ToListStr() ([]string, error) {
 	return m.BaseItfImpl.ToListStr()
 }
@@ -242,6 +260,11 @@ func (m *ForeachItfImpl) ToListInt() ([]int, error) {
 func (m *ForeachItfImpl) ToListInt32() ([]int32, error) {
 	return m.BaseItfImpl.ToListInt32()
 }
+
+func (m *ForeachItfImpl) ToListRune() ([]int32, error) {
+	return m.BaseItfImpl.ToListRune()
+}
+
 func (m *ForeachItfImpl) ToListInt64() ([]int64, error) {
 	return m.BaseItfImpl.ToListInt64()
 }
@@ -262,4 +285,68 @@ func (m *ForeachItfImpl) ToListFloat64() ([]float64, error) {
 }
 func (m *ForeachItfImpl) ToListBool() ([]bool, error) {
 	return m.BaseItfImpl.ToListBool()
+}
+
+func (m *ForeachItfImpl) ToStruct(out interface{}) (interface{}, error) {
+	return m.BaseItfImpl.ToStruct(out)
+}
+
+func (m *ForeachItfImpl) IsStr() (bool, error) {
+	return m.BaseItfImpl.IsStr()
+}
+func (m *ForeachItfImpl) IsDigit() (bool, error) {
+	return m.BaseItfImpl.IsDigit()
+}
+func (m *ForeachItfImpl) IsList() (bool, error) {
+	return m.BaseItfImpl.IsList()
+}
+func (m *ForeachItfImpl) IsStrList() (bool, error) {
+	return m.BaseItfImpl.IsStrList()
+}
+func (m *ForeachItfImpl) IsDigitList() (bool, error) {
+	return m.BaseItfImpl.IsDigitList()
+}
+func (m *ForeachItfImpl) IsMap() (bool, error) {
+	return m.BaseItfImpl.IsMap()
+}
+func (m *ForeachItfImpl) IsMapStrItf() (bool, error) {
+	return m.BaseItfImpl.IsMapStrItf()
+}
+
+func (m *ForeachItfImpl) Uniq() api.MapInterface {
+	return m.BaseItfImpl.Uniq()
+}
+
+func (m *ForeachItfImpl) ForEach(forFunc api.ForFunc) api.MapInterface {
+	m.ItfErr = itferr.NewMapItfErr("ForeachItfImpl#ForEach", itferr.UnSupportInterfaceFunc, "un-support ForEach to ForEach", nil)
+	return m
+}
+
+func (m *ForeachItfImpl) SetMap(key interface{}, val interface{}) (orgVal interface{}, err error) {
+	m.ItfErr = itferr.NewMapItfErr("ForeachItfImpl#SetMap", itferr.UnSupportInterfaceFunc, "un-support do ForEach then Set", nil)
+	return nil, m.ItfErr
+}
+
+func (m *ForeachItfImpl) SetAsMap(key interface{}) (orgVal interface{}, err error) {
+	m.ItfErr = itferr.NewMapItfErr("ForeachItfImpl#SetAsMap", itferr.UnSupportInterfaceFunc, "un-support do ForEach then Set", nil)
+	return nil, m.ItfErr
+}
+
+func (m *ForeachItfImpl) New() api.MapInterface {
+	return &ForeachItfImpl{
+		BaseItfImpl: BaseItfImpl{
+			Ctx:       m.Ctx,
+			Class:     m.Class,
+			ItfErr:    m.ItfErr,
+			IterVal:   m.IterVal,
+			IterChain: m.IterChain.Clone(),
+		},
+		DataType: m.DataType,
+		ListItf:  m.ListItf,
+		MapItf:   m.MapItf,
+	}
+}
+
+func (m *ForeachItfImpl) PrintPath() string {
+	return m.BaseItfImpl.PrintPath()
 }

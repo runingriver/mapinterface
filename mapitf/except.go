@@ -2,7 +2,6 @@ package mapitf
 
 import (
 	"fmt"
-
 	"github.com/runingriver/mapinterface/api"
 	"github.com/runingriver/mapinterface/itferr"
 )
@@ -16,7 +15,7 @@ type ExceptItfImpl struct {
 	BaseItfImpl
 }
 
-func NewExceptItfImplErr(err *itferr.MapItfError) ExceptItf {
+func NewExceptItfImplErr(err itferr.MapItfErr) ExceptItf {
 	return &ExceptItfImpl{BaseItfImpl{ItfErr: err}}
 }
 
