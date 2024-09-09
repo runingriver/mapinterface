@@ -98,6 +98,61 @@ func TestToFloat64E(t *testing.T) {
 		})
 	}
 }
+func TestToFloat64(t *testing.T) {
+	a := struct {
+		A *int64
+	}{}
+	n1 := int64(6911300862917002766)
+	n2 := "6911300862917002766"
+	cse := []interface{}{
+		int64(6911300862917002766), // ok
+		"6911300862917002766",      // ok
+		"6911300862917002.766",     // ok
+		nil,                        // error
+		"",                         // error
+		&n1,                        // error
+		&n2,                        // error
+		a.A,                        // error
+		json.Number("123"),         // ok
+		json.Number("123e"),        // error
+		json.Number("123e."),       // error
+		json.Number("123."),        // ok
+		json.Number("123.1"),       // ok
+		json.Number(""),            // error
+	}
+	for i, n := range cse {
+		f, err := ToFloat64(n)
+		t.Logf("i:%d,n:%#v=>%v:%v", i, n, f, err)
+	}
+}
+
+func TestToInt64(t *testing.T) {
+	a := struct {
+		A *int64
+	}{}
+	n1 := int64(6911300862917002766)
+	n2 := "6911300862917002766"
+	cse := []interface{}{
+		int64(6911300862917002766), // ok
+		"6911300862917002766",      // ok
+		"6911300862917002.766",     // ok
+		nil,                        // error
+		"",                         // error
+		&n1,                        // error
+		&n2,                        // error
+		a.A,                        // error
+		json.Number("123"),         // ok
+		json.Number("123e"),        // error
+		json.Number("123e."),       // error
+		json.Number("123."),        // ok
+		json.Number("123.1"),       // ok
+		json.Number(""),            // error
+	}
+	for i, n := range cse {
+		in, err := ToInt64(n)
+		t.Logf("i:%d,n:%#v=>%v,%v", i, n, in, err)
+	}
+}
 
 func TestByteToStr(t *testing.T) {
 	cse := []string{
@@ -108,8 +163,4 @@ func TestByteToStr(t *testing.T) {
 		byteToStr := ByteToStr(strToByte)
 		t.Logf("StrToByte:%v,ByteToStr:%v", strToByte, byteToStr)
 	}
-}
-
-func TestToStr(t *testing.T) {
-
 }

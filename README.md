@@ -63,18 +63,13 @@ if v,ok := mapitf.From(jsonMap).Get("name").Exist("first"); ok {
 ```
 
 ## 注意
-1. 性能考虑, 不支持以下使用方式
+- 日志定义与实现剥离,若希望打印mapitf过程的异常,使用前请先将日志注入
 ```go
-nameNode := mapitf.From(jsonMap).Get("name")
-first := nameNode.Get("first")
-second := nameNode.Get("first")
-// 因为,如果支持以上方式,会导致过多的内存拷贝,所以建议如下使用:
-first := mapitf.From(jsonMap).Get("name").Get("first")
-second := mapitf.From(jsonMap).Get("name").Get("first")
+mapitf.Config().SetLogger(logs.DefaultLogger())
 ```
 
 # 进阶
-1. 字符串场景的支持
+1. 字符串场景的支持: 默认把所有的Json str当作map[string]interface{}看待.
 ```go
 jsonStr := '{"name":{"first":"Janet","last":"Prichard"},"age":47}'
 age, err := mapitf.From(jsonStr).Get("name").Get("first").ToStr()
@@ -109,8 +104,84 @@ nameList, err := mapitf.From(mapList[2]).GetAny("users").ForEach(func(i int, k, 
 }).ToListStrF()
 ```
 
-# 规划
-1. 支持Foreach能力(p0), 预案如下:  -- **已支持**
+4. Setter(赋值)
+```go
+mapJsonStr = map[string]interface{}{
+    "str-str": map[string]string{
+        "info": "{\"item_id\":7351241250965703963,\"app_id\":\"2324\"}",
+    },
+}
+orgVal, err := mapitf.From(mapJsonStr).SetMap("set-map", "hello world")
+orgVal, setErr := mapitf.From(mapJsonStr).Get("str-str").SetAsMap("info")
+```
+
+
+注:下面的方式也是支持的,但不推荐:
+```go
+jsonStr := []map[string]interface{}{
+    {"first":"Janet","last":"Prichard"},
+    {"first":"Jack","last":"Jam"},
+}
+toMap, err := mapitf.From(jsonStr).Index(1).ToMap()
+if err != nil {
+    return
+}
+toMap["age"] = 24
+toMap["first"] = "Kite"
+```
+原理: `mapinterface`在层层递进时会hold当前层的value指针,所以可以通过指针进行赋值;
+
+5. 外传:强大的类型转换
+```go
+mapStr, err := mapitf.From(val).ToMapStrToStr()
+```
+
+```go
+type OjbImpStr struct {
+	Name string
+	Age  int
+}
+
+func (o *OjbImpStr) String() string {
+	return fmt.Sprintf("Name:%s,Age:%d", o.Name, o.Age)
+}
+
+ois := OjbImpStr{
+   Name: "Jack",
+   Age:  24,
+}
+
+oiStr, err := mapitf.From(ois).ToStr() 
+// oiStr: Name:Jack,Age:24
+```
+
+```go
+type MockObject int64 // 定义一个类型
+
+mo := MockObject(10)
+intStr, err := mapitf.From(mo).ToStr() // 转换为:10
+```
+
+6. Map内部Json字符串支持
+- 查找时针对map内部val是json字符串的情况,我们也支持像普通map一样进行操作,内部实现原理是:把字符串反转成map再进行相关操作.
+    - 注:不会把原来的map从str改成map类型;如果需要请用SetAsMap()
+- ToMap系列,ToList系列的类型转换也支持将json str转成对应的类型;
+```go
+ListInnerJsonStr = map[string]interface{}{
+    "index": "[1,2,3.3,7351241250965703962]",
+    "list_map": "[{\"1\":\"2\"}]"
+}
+
+// 如下"Index(0)"取json字符串中index为0的内容再对他进行For循环
+mapInt, err := mapitf.From(ListInnerJsonStr).Get("list_map").Index(0).ForEach(func(i int, k, v interface{}) (key, val interface{}) {
+    return k, v
+}).ToMapIntToInt()
+
+listMap, err := mapitf.From(ListInnerJsonStr).Get("list_map").ToListMap() // 此时listMap是一个map对象
+```
+
+
+7. 支持ForEach能力(p0), 预案如下:  -- **v1.0.14已支持**
 ```go
 // python => k = [get_predict(v) for k,v in dsl['predict']['risk'].iterms() if v['risk_level'] > 20]
 
@@ -138,10 +209,18 @@ operationFunc = func (i int, k, v interface) (key, val interface) {
     return k, result
 }
 ```
-**进度:** v1.0.14版已支持
 
-2. 支持条件获取(p2), 预案如下:
+# 规划
+1. 支持条件获取(p2), 预案如下:
 ```go
 // select * from x where (id=1 or id>100) and name rlike "hu%"
 mapitf.From().Get().Where("id", eq, 1).OrWhere("id", gt, 100).Where("name", startWith, "hu").ToList()
 ```
+
+# 更新说明
+1. 20240413:重大更新:
+    - 支持对对象进行赋值,间Set相关方法
+    - 支持ToStruct把结果转成struct
+    - ToMap,ToList系列支持将json str转成Map或List
+    - 支持非链式调用
+    - 整体项目实现优化,删除基础类型map,统一由MapAny承担. 单测从打日志改为assert.
