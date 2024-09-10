@@ -89,7 +89,7 @@ func (m *ForeachItfImpl) Get(key interface{}) api.MapInterface {
 
 func (m *ForeachItfImpl) GetAny(keys ...interface{}) api.MapInterface {
 	if m.DataType != MapDataType {
-		m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("ForeachItfImpl#GetAny(%v)", keys), "un-supported func")
+		m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("ForeachItfImpl#GetAny(%+v)", keys), "un-supported func")
 		return m
 	}
 	return FrWithChain(m.Ctx, m.MapItf, m.IterChain).GetAny(keys...)
@@ -329,6 +329,11 @@ func (m *ForeachItfImpl) SetMap(key interface{}, val interface{}) (orgVal interf
 
 func (m *ForeachItfImpl) SetAsMap(key interface{}) (orgVal interface{}, err error) {
 	m.ItfErr = itferr.NewMapItfErr("ForeachItfImpl#SetAsMap", itferr.UnSupportInterfaceFunc, "un-support do ForEach then Set", nil)
+	return nil, m.ItfErr
+}
+
+func (m *ForeachItfImpl) SetAllAsMap() (orgVal interface{}, err error) {
+	m.ItfErr = itferr.NewMapItfErr("ForeachItfImpl#SetAllAsMap", itferr.UnSupportInterfaceFunc, "un-support do ForEach then Set", nil)
 	return nil, m.ItfErr
 }
 

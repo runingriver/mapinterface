@@ -364,6 +364,24 @@ var (
 		},
 		"max_delivery_seconds": 259200
 	}`
+	SetAsMap = map[string]interface{}{
+		"map-itf-str": map[string]interface{}{
+			"coupon_info": "[\n\t{\n\t\t\"coupon_id\": 1792669145841964,\n\t\t\"coupon_discount\": 2000000,\n\t\t\"coupon_remain_discount\": 2000000,\n\t\t\"is_returned\": true\n\t}\n]",
+		},
+		"map-itf-list-str": map[string]interface{}{
+			"coupon_list": []interface{}{"{\"coupon_id\": 1792669145841964}", "7401810649933939467", ""},
+		},
+		"map-str-str": map[string]interface{}{
+			"key": "{\"key1\":\"{\\\"nested_key1\\\":\\\"nested_value1\\\"}\"}",
+		},
+		"map-str": "{\"key1\":\"{\\\"nested_key1\\\":\\\"nested_value1\\\"}\"}",
+		"map-type-except": map[string]string{
+			"key": "{\"nested_key1\":\"nested_value1\"}",
+		},
+		"map-itf-list-except": map[string]interface{}{
+			"coupon_list": []string{"{\"coupon_id\": 1792669145841964}", "7401810649933939467", ""},
+		},
+	}
 )
 
 type MockInt int64

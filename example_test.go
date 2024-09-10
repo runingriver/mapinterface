@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/bytedance/sonic"
 	"github.com/runingriver/mapinterface/mapitf"
 	"github.com/runingriver/mapinterface/pkg"
 	"github.com/smartystreets/goconvey/convey"
@@ -902,4 +903,50 @@ func TestIterPath(t *testing.T) {
 	exceptPath = "map[string]interface {} => list_map:[]interface {} => 0:map[string]interface {} => 1:string"
 	assert.Equal(t, exceptPath, path)
 	t.Logf("%s", path)
+}
+
+func Test_SetAllAsMap(t *testing.T) {
+	val, err := mapitf.From(SetAsMap).Get("map-itf-str").SetAllAsMap()
+	assert.Nil(t, err)
+	couponVal, err := mapitf.From(val).GetAny("map-itf-str", "coupon_info").Val()
+	assert.Nil(t, err)
+	assert.IsType(t, []interface{}{}, couponVal)
+
+	val, err = mapitf.From(SetAsMap).Get("map-itf-list-str").SetAllAsMap()
+	assert.Nil(t, err)
+	listVal, err := mapitf.From(val).GetAny("map-itf-list-str", "coupon_list").Val()
+	assert.Nil(t, err)
+	assert.Len(t, listVal, 3)
+	assert.IsType(t, []interface{}{}, listVal)
+	listItf := listVal.([]interface{})
+	assert.IsType(t, map[string]interface{}{}, listItf[0])
+
+	val, err = mapitf.From(SetAsMap).Get("map-str-str").SetAllAsMap()
+	assert.Nil(t, err)
+	key1, _ := mapitf.From(SetAsMap).GetAny("map-str-str", "key").Val()
+	assert.IsType(t, map[string]interface{}{}, key1)
+	key2, _ := mapitf.From(SetAsMap).GetAny("map-str-str", "key", "key1").Val()
+	assert.IsType(t, map[string]interface{}{}, key2)
+
+	_, err = mapitf.From(SetAsMap).Get("map-str").SetAllAsMap()
+	assert.Nil(t, err)
+	assert.IsType(t, map[string]interface{}{}, SetAsMap["map-str"])
+
+	val, err = mapitf.From(SetAsMap).Get("map-type-except").SetAllAsMap()
+	assert.Nil(t, err)
+	val, _ = mapitf.From(SetAsMap).GetAny("map-type-except", "key").Val()
+	assert.IsType(t, "", val)
+
+	val, err = mapitf.From(SetAsMap).Get("map-itf-list-except").SetAllAsMap()
+	assert.Nil(t, err)
+	val, _ = mapitf.From(SetAsMap).GetAny("map-itf-list-except", "coupon_list").Val()
+	assert.IsType(t, []string{}, val)
+}
+
+func TestName(t *testing.T) {
+	js := map[string]interface{}{
+		"key1": "{\"key1\":\"{\\\"nested_key1\\\":\\\"nested_value1\\\"}\"}",
+	}
+	marshalString, _ := sonic.MarshalString(js)
+	t.Logf(marshalString)
 }

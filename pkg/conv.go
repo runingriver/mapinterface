@@ -75,6 +75,7 @@ func JsonDumps(m interface{}) (string, error) {
 }
 
 // StrChecker 判断v是不是一个字符串类型,首先判断是否为字符串,其次判断是否为json
+// 注:基础类型也会返回true,如:"745934759",返回true,序列化为json.Number
 func JsonChecker(v interface{}) (bool, string) {
 	if isStr, s := IsStrType(v); isStr {
 		if ok := sonic.Valid(StrToByte(s)); ok { // 底层调用的json.Valid

@@ -129,6 +129,6 @@ type SetValType interface {
 	SetAsMap(key interface{}) (orgVal interface{}, err error)
 	// SetList 设置指定index上的值为val
 	//SetList(idx int, val interface{}) (orgVal interface{}, err error)
-	// SetAll 递归map的每一个节点,将json str赋值为map
-	//SetAll() (orgVal interface{}, err error)
+	// SetAllAsMap 递归map的每一个节点,将json str赋值为map
+	SetAllAsMap() (orgVal interface{}, err error)
 }

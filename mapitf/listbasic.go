@@ -63,26 +63,32 @@ func (m *BasicListItfImpl) Index(index int) api.MapInterface {
 }
 
 func (m *BasicListItfImpl) Get(key interface{}) api.MapInterface {
-	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#Get(%d)", key), "un-supported func")
+	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#Get(%v)", key), "un-supported func")
 	return m
 }
 
 func (m *BasicListItfImpl) GetAny(keys ...interface{}) api.MapInterface {
-	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#GetAny(%d)", keys), "un-supported func")
+	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#GetAny(%+v)", keys), "un-supported func")
 	return m
 }
 
 func (m *BasicListItfImpl) SetMap(key interface{}, val interface{}) (orgVal interface{}, err error) {
-	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#Get(%d)", key), "un-supported func")
+	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#SetMap(%v)", key), "un-supported func")
 	return nil, m.ItfErr
 }
 
 func (m *BasicListItfImpl) SetAsMap(key interface{}) (orgVal interface{}, err error) {
-	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#Get(%d)", key), "un-supported func")
+	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#SetAsMap(%v)", key), "un-supported func")
 	return nil, m.ItfErr
 }
+
+func (m *BasicListItfImpl) SetAllAsMap() (orgVal interface{}, err error) {
+	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#SetAsMap()"), "un-supported func")
+	return nil, m.ItfErr
+}
+
 func (m *BasicListItfImpl) Exist(key interface{}) (interface{}, bool) {
-	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#Get(%d)", key), "un-supported func")
+	m.ItfErr = itferr.NewFuncUsedErr(fmt.Sprintf("BasicListItfImpl#Get(%v)", key), "un-supported func")
 	return nil, false
 }
 func (m *BasicListItfImpl) indexing(index int) api.MapInterface {
