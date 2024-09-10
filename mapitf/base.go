@@ -2476,6 +2476,10 @@ func (b *BaseItfImpl) SetMap(key interface{}, val interface{}) (orgVal interface
 		if rfV.Type().Key().Kind() != reflect.TypeOf(key).Kind() {
 			return nil, itferr.NewSetValueErr(fmt.Sprintf("%s#SetMap", b.Class), "param-key with map-key not-match", nil)
 		}
+		valKind := rfV.Type().Elem().Kind()
+		if valKind != reflect.TypeOf(val).Kind() && valKind != reflect.Interface {
+			return nil, itferr.NewSetValueErr(fmt.Sprintf("%s#SetMap", b.Class), "param-val type illegal cannot set val", nil)
+		}
 		rfV.SetMapIndex(reflect.ValueOf(key), reflect.ValueOf(val))
 		return b.OrgVal()
 	}
@@ -2486,7 +2490,7 @@ func (b *BaseItfImpl) SetMap(key interface{}, val interface{}) (orgVal interface
 			// 把key上一层的值改为map
 			setErr := b.IterChain.SetBackPreVal(result)
 			if err != nil {
-				b.ItfErr = itferr.NewSetValueErr(fmt.Sprintf("%s#SetMap", b.Class), "", setErr)
+				b.ItfErr = itferr.NewSetValueErr(fmt.Sprintf("%s#SetMap", b.Class), "SetBackPreVal err", setErr)
 				return nil, b.ItfErr
 			}
 			result[pkg.ToStr(key)] = val
@@ -2505,12 +2509,13 @@ func (b *BaseItfImpl) SetAsMap(key interface{}) (orgVal interface{}, err error) 
 	if rfIterVal.Kind() != reflect.Map {
 		return nil, itferr.NewUnSupportSetValErr(fmt.Sprintf("%s#SetAsMap", b.Class), "val is not map", nil)
 	}
-	rfKey := reflect.ValueOf(key)
+
 	rfIterValType := rfIterVal.Type().Elem().Kind()
-	if rfIterValType != reflect.Map && rfIterValType != reflect.Interface {
+	if rfIterValType != reflect.Interface {
 		return nil, itferr.NewUnSupportSetValErr(fmt.Sprintf("%s#SetAsMap", b.Class), "map val type un-match", nil)
 	}
 
+	rfKey := reflect.ValueOf(key)
 	mapVal, itfErr := b.toInterface(rfIterVal.MapIndex(rfKey))
 	if itfErr != nil {
 		b.ItfErr = itfErr
@@ -2527,6 +2532,79 @@ func (b *BaseItfImpl) SetAsMap(key interface{}) (orgVal interface{}, err error) 
 	}
 
 	return nil, itferr.NewUnSupportSetValErr(fmt.Sprintf("%s#SetAsMap", b.Class), "val is not json string", nil)
+}
+
+func (b *BaseItfImpl) SetAllAsMap() (orgVal interface{}, err error) {
+	if b.ItfErr != nil {
+		return nil, b.ItfErr
+	}
+	if ok, val := b.deepSetMap(b.IterVal); ok {
+		// 此时b.IterVal为json str,val为map,递归map中的内容对json-str进行处理
+		b.deepSetMap(val)
+		// 把key上一层的值改为map
+		setErr := b.IterChain.SetBackPreVal(val)
+		if err != nil {
+			b.ItfErr = itferr.NewSetValueErr(fmt.Sprintf("%s#SetMap", b.Class), "SetBackPreVal err", setErr)
+			return nil, b.ItfErr
+		}
+	}
+	return b.OrgVal()
+}
+
+// deepSetMap 深度优先递归遍历,不限制递归深度
+func (b *BaseItfImpl) deepSetMap(itVal interface{}) (bool, interface{}) {
+	rfIterVal := pkg.ReflectToVal(itVal)
+	if !rfIterVal.IsValid() || !rfIterVal.CanInterface() {
+		return false, itVal
+	}
+
+redo:
+	switch rfIterVal.Kind() {
+	case reflect.Map:
+		for _, rfK := range rfIterVal.MapKeys() {
+			mpV := rfIterVal.MapIndex(rfK)
+			if !mpV.IsValid() || !mpV.CanInterface() {
+				continue
+			}
+			if ok, val := b.deepSetMap(mpV.Interface()); ok {
+				// 为确保赋值成功,rfIterVal map的类型一定是map[x]interface{}
+				if rfIterVal.Type().Elem().Kind() == reflect.Interface {
+					rfIterVal.SetMapIndex(rfK, reflect.ValueOf(val))
+					goto redo
+				}
+			}
+		}
+	case reflect.String:
+		// 如果是json,序列化为map,赋值;并将该map纳入递归中.
+		if ok, s := pkg.JsonChecker(rfIterVal.Interface()); ok {
+			// json load后必须是map[string]interface{}, []interface{},才去赋值
+			if val, err := pkg.JsonLoadsMap(s); err == nil {
+				return true, val
+			}
+			if val, err := pkg.JsonLoadsList(s); err == nil {
+				return true, val
+			}
+			return false, itVal
+		}
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < rfIterVal.Len(); i++ {
+			idxV := rfIterVal.Index(i)
+			if !idxV.IsValid() || !idxV.CanInterface() {
+				continue
+			}
+			if ok, val := b.deepSetMap(idxV.Interface()); ok {
+				// 为确保能赋值成功,rfIterVal list类型必须是[]interface{}
+				if _, ok := itVal.([]interface{}); !ok {
+					return false, itVal
+				}
+				idxV.Set(reflect.ValueOf(val))
+				goto redo
+			}
+		}
+	default:
+		return false, itVal
+	}
+	return false, itVal
 }
 
 func (b *BaseItfImpl) New() api.MapInterface {
@@ -2548,7 +2626,7 @@ func (b *BaseItfImpl) PrintPath() string {
 	for e := b.IterChain.Front(); e != nil; e = e.Next() {
 		iterCtx, ok := e.Value.(*IterCtx)
 		if !ok {
-			logx.CtxWarn(b.Ctx, "[%s#PrintPath] Value cannot cvt to IterCtx")
+			logx.CtxWarn(b.Ctx, "[%s#PrintPath] Value cannot cvt to IterCtx", b.Class)
 			continue
 		}
 		if isFirst {
