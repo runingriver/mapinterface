@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/bytedance/sonic"
 	"github.com/runingriver/mapinterface/mapitf"
 	"github.com/runingriver/mapinterface/pkg"
 	"github.com/smartystreets/goconvey/convey"
@@ -941,12 +940,4 @@ func Test_SetAllAsMap(t *testing.T) {
 	assert.Nil(t, err)
 	val, _ = mapitf.From(SetAsMap).GetAny("map-itf-list-except", "coupon_list").Val()
 	assert.IsType(t, []string{}, val)
-}
-
-func TestName(t *testing.T) {
-	js := map[string]interface{}{
-		"key1": "{\"key1\":\"{\\\"nested_key1\\\":\\\"nested_value1\\\"}\"}",
-	}
-	marshalString, _ := sonic.MarshalString(js)
-	t.Logf(marshalString)
 }
