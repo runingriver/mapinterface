@@ -2644,8 +2644,5 @@ func (b *BaseItfImpl) PrintPath() string {
 }
 
 func (b *BaseItfImpl) OrgVal() (interface{}, error) {
-	//if b.ItfErr != nil {
-	//	return nil, b.ItfErr
-	//}
 	return b.IterChain.HeadVal(), b.ItfErr
 }

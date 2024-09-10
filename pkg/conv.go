@@ -32,10 +32,10 @@ func JsonLoadsMap(jsonStr string) (map[string]interface{}, error) {
 // JsonLoadsList
 func JsonLoadsList(jsonStr string) ([]interface{}, error) {
 	var m []interface{}
-	decoder := decoder.NewDecoder(jsonStr)
-	decoder.UseNumber()
+	dc := decoder.NewDecoder(jsonStr)
+	dc.UseNumber()
 
-	if err := decoder.Decode(&m); err == nil {
+	if err := dc.Decode(&m); err == nil {
 		return m, nil
 	} else {
 		return m, err
@@ -47,10 +47,10 @@ func JsonLoadsObj(jsonStr string, o interface{}) (interface{}, error) {
 	if t := reflect.TypeOf(o); t.Kind() != reflect.Ptr {
 		return nil, errors.New("param o must be ptr")
 	}
-	decoder := decoder.NewDecoder(jsonStr)
-	decoder.UseNumber()
+	dc := decoder.NewDecoder(jsonStr)
+	dc.UseNumber()
 
-	if err := decoder.Decode(o); err == nil {
+	if err := dc.Decode(o); err == nil {
 		return o, nil
 	} else {
 		return o, err
